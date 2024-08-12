@@ -1,0 +1,3 @@
+gorilla say_hello() {
+	print "hello"
+}
