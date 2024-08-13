@@ -1,3 +1,4 @@
+use super::token::Literal;
 use super::token::Token;
 use super::token::TokenType;
 
@@ -33,11 +34,30 @@ impl Scanner {
         ));
     }
     fn scan_token(&mut self) {
-        let c = self.advance()
+        let c = self.advance();
+        match c {
+            "(" => Token::new(
+                TokenType::LeftParen,
+                "(".to_string(),
+                Literal::None,
+                self.line,
+            ),
+        }
     }
 
-    pub fn is_at_end(&self) -> bool {
+    // HELPERS:
+
+    fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
+    }
+
+    fn advance(&self) -> char {
+        let next_char = self
+            .source
+            .chars()
+            .nth(self.current + 1)
+            .expect("Could not get next character");
+        next_char
     }
 }
 
