@@ -8,6 +8,7 @@ pub struct Scanner {
     start: usize,
     current: usize,
     line: usize,
+    unexpected_tokens: Vec<Token>,
 }
 
 impl Scanner {
@@ -18,6 +19,7 @@ impl Scanner {
             start: 0,
             current: 0,
             line: 1,
+            unexpected_tokens: Vec::new(),
         }
     }
 
@@ -29,20 +31,59 @@ impl Scanner {
         self.tokens.push(Token::new(
             TokenType::Eof,
             "".to_string(),
-            super::token::Literal::None,
+            Literal::None,
             self.line,
         ));
     }
     fn scan_token(&mut self) {
         let c = self.advance();
-        match c {
-            "(" => Token::new(
+        let token = match c {
+            '(' => Token::new(
                 TokenType::LeftParen,
                 "(".to_string(),
                 Literal::None,
                 self.line,
             ),
-        }
+            ')' => Token::new(
+                TokenType::RightParen,
+                ")".to_string(),
+                Literal::None,
+                self.line,
+            ),
+            '{' => Token::new(
+                TokenType::LeftBrace,
+                "{".to_string(),
+                Literal::None,
+                self.line,
+            ),
+            '}' => Token::new(
+                TokenType::RightBrace,
+                "}".to_string(),
+                Literal::None,
+                self.line,
+            ),
+            ',' => Token::new(TokenType::Comma, ",".to_string(), Literal::None, self.line),
+            '.' => Token::new(TokenType::Dot, ".".to_string(), Literal::None, self.line),
+            '-' => Token::new(TokenType::Minus, "-".to_string(), Literal::None, self.line),
+            '+' => Token::new(TokenType::Plus, "+".to_string(), Literal::None, self.line),
+            ';' => Token::new(
+                TokenType::Semicolon,
+                ";".to_string(),
+                Literal::None,
+                self.line,
+            ),
+            '*' => Token::new(TokenType::Star, "*".to_string(), Literal::None, self.line),
+            _ => {
+                let unexpected_token = Token::new(
+                    TokenType::Unexpected,
+                    c.to_string(),
+                    Literal::None,
+                    self.line,
+                );
+                self.unexpected_tokens.push(unexpected_token.clone());
+                unexpected_token
+            }
+        };
     }
 
     // HELPERS:

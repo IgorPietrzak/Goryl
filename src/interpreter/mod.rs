@@ -1,13 +1,9 @@
 use crate::lexer;
 use std::io;
 
-pub fn run_file(file: String) {
-    lexer::lex(file);
-}
+pub fn run_file(file: String) {}
 
-pub fn run_line(line: String) {
-    lexer::lex(line);
-}
+pub fn run_line(line: String) {}
 
 pub fn run_prompt() {
     loop {
