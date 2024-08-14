@@ -89,8 +89,6 @@ impl Scanner {
 
     // HELPERS:
 
-    // annoyingly add this one to EVERY match statement arm.
-
     pub fn add_token(&mut self, token_type: TokenType) {
         let lexeme = self.source[self.start..self.current + 1].to_string();
         let token = Token::new(token_type, lexeme, Literal::None, self.line);
@@ -128,7 +126,7 @@ impl Scanner {
 
     fn peek(&self) -> char {
         if self.is_at_end() {
-            return '\u{0030}';
+            return '\0';
         } else {
             return self
                 .source
