@@ -1,4 +1,4 @@
-use crate::lexer;
+use crate::syntax;
 use std::io;
 
 pub fn run_file(file: String) {}
