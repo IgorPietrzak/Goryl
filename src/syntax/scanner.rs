@@ -1,14 +1,16 @@
 use super::token::Literal;
 use super::token::Token;
 use super::token::TokenType;
+use crate::errors::syntax_error::{SyntaxError, UnexpectedToken, UnterminatedString};
 
+#[derive(Debug)]
 pub struct Scanner {
     source: String,
     tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: usize,
-    unexpected_tokens: Vec<Token>,
+    errors: Vec<SyntaxError>,
 }
 
 impl Scanner {
@@ -19,7 +21,7 @@ impl Scanner {
             start: 0,
             current: 0,
             line: 1,
-            unexpected_tokens: Vec::new(),
+            errors: Vec::new(),
         }
     }
 
@@ -38,6 +40,9 @@ impl Scanner {
 
     fn scan_token(&mut self) {
         let c = self.advance();
+        if c == '\0' {
+            return;
+        }
         match c {
             '(' => self.add_token(TokenType::LeftParen),
             ')' => self.add_token(TokenType::RightParen),
@@ -74,24 +79,36 @@ impl Scanner {
                 }
                 self.add_token(TokenType::Slash);
             }
+            ' ' => {}
+            '\r' => {}
+            '\t' => {}
+            '\n' => self.line += 1,
+            '"' => self.handle_string(),
 
             _ => {
-                let unexpected_token = Token::new(
-                    TokenType::Unexpected,
-                    c.to_string(),
-                    Literal::None,
-                    self.line,
-                );
-                self.unexpected_tokens.push(unexpected_token.clone());
+                // check if c is digit base 10, argument here is the radix.
+                if c.is_digit(10) {
+                    self.handle_number();
+                } else {
+                    self.errors
+                        .push(SyntaxError::UnexpectedToken(UnexpectedToken::new(
+                            c, self.line,
+                        )));
+                }
             }
         };
     }
 
     // HELPERS:
 
-    pub fn add_token(&mut self, token_type: TokenType) {
-        let lexeme = self.source[self.start..self.current + 1].to_string();
+    fn add_token(&mut self, token_type: TokenType) {
+        let lexeme = self.source[self.start..self.current].to_string();
         let token = Token::new(token_type, lexeme, Literal::None, self.line);
+        self.tokens.push(token);
+    }
+    fn add_literal(&mut self, token_type: TokenType, literal: Literal) {
+        let lexeme = self.source[self.start..self.current].to_string();
+        let token = Token::new(token_type, lexeme, literal, self.line);
         self.tokens.push(token);
     }
 
@@ -99,12 +116,17 @@ impl Scanner {
         self.current >= self.source.len()
     }
 
-    fn advance(&self) -> char {
+    pub fn advance(&mut self) -> char {
+        if self.is_at_end() {
+            return '\0';
+        }
         let next_char = self
             .source
             .chars()
-            .nth(self.current + 1)
+            .nth(self.current)
             .expect("Could not get next character");
+        self.current += 1;
+
         next_char
     }
     // used for checking if we have a compound lexeme like !=, ==, >=, ...
@@ -120,7 +142,7 @@ impl Scanner {
         {
             return false;
         }
-        self.current = self.current + 1;
+        self.current += 1;
         true
     }
 
@@ -135,17 +157,66 @@ impl Scanner {
                 .expect("Could not get nth character in from source");
         }
     }
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.source.len() {
+            return '\0';
+        }
+        return self
+            .source
+            .chars()
+            .nth(self.current + 1)
+            .expect("Could not get nth character in from source");
+    }
+
+    fn handle_string(&mut self) {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            self.errors
+                .push(SyntaxError::UnterminatedString(UnterminatedString::new(
+                    self.line,
+                )));
+        }
+
+        self.advance();
+        let literal_value = self.source[self.start..self.current].to_string();
+        self.add_literal(TokenType::String, Literal::String(literal_value));
+    }
+
+    fn handle_number(&mut self) {
+        // consume before decimal point
+        while self.peek().is_digit(10) {
+            self.advance();
+        }
+        if self.peek() == '.' && self.peek_next().is_digit(10) {
+            // consume the decimal point
+            self.advance();
+            // consume after decimal point
+            while self.peek().is_digit(10) {
+                self.advance();
+            }
+        }
+        let literal_value: f64 = self.source[self.start..self.current]
+            .parse()
+            .expect("Could not parse to f64");
+        self.add_literal(TokenType::Number, Literal::Number(literal_value));
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::Scanner;
 
-    #[test]
-    fn test_is_at_end() {
-        let scanner = Scanner::new("let igor = true".to_string());
-        assert_eq!(false, scanner.is_at_end())
-    }
+    // #[test]
+    // fn test_is_at_end() {
+    //     let scanner = Scanner::new("let igor = true".to_string());
+    //     assert_eq!(false, scanner.is_at_end())
+    // }
 
     // #[test]
     // fn test_add_token() {
@@ -153,4 +224,19 @@ mod test {
     //     scanner.add_token(crate::syntax::token::TokenType::Dot);
     //     println!("{:?}", scanner.tokens);
     // }
+    #[test]
+    fn scanner_test() {
+        let source_code = String::from(
+            r#"123 + 145.99 
+            
+            
+            
+            
+            69;
+            "#,
+        );
+        let mut scanner = Scanner::new(source_code);
+        scanner.scan_tokens();
+        println!("{:#?}", scanner);
+    }
 }
