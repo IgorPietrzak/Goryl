@@ -76,8 +76,9 @@ impl Scanner {
                     while self.peek() != '\n' && !self.is_at_end() {
                         self.advance();
                     }
+                } else {
+                    self.add_token(TokenType::Slash);
                 }
-                self.add_token(TokenType::Slash);
             }
             ' ' => {}
             '\r' => {}
@@ -169,6 +170,7 @@ impl Scanner {
     }
 
     fn handle_string(&mut self) {
+        let error_line = self.line;
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
                 self.line += 1;
@@ -179,12 +181,12 @@ impl Scanner {
         if self.is_at_end() {
             self.errors
                 .push(SyntaxError::UnterminatedString(UnterminatedString::new(
-                    self.line,
+                    error_line,
                 )));
         }
 
         self.advance();
-        let literal_value = self.source[self.start..self.current].to_string();
+        let literal_value = self.source[(self.start + 1)..(self.current - 1)].to_string();
         self.add_literal(TokenType::String, Literal::String(literal_value));
     }
 
@@ -227,12 +229,16 @@ mod test {
     #[test]
     fn scanner_test() {
         let source_code = String::from(
-            r#"123 + 145.99 
+            r#"123 + 456;
             
             
+            "Hello bug";
+
+            %
+
+            "Nats;
             
             
-            69;
             "#,
         );
         let mut scanner = Scanner::new(source_code);
