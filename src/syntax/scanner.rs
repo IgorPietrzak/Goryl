@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::token::Literal;
 use super::token::Token;
 use super::token::TokenType;
@@ -11,10 +13,28 @@ pub struct Scanner {
     current: usize,
     line: usize,
     errors: Vec<SyntaxError>,
+    reserved_keywords: HashMap<String, TokenType>,
 }
 
 impl Scanner {
     pub fn new(source: String) -> Self {
+        let mut reserved_keywords = HashMap::new();
+        reserved_keywords.insert("and".to_string(), TokenType::And);
+        reserved_keywords.insert("Jungle".to_string(), TokenType::Jungle);
+        reserved_keywords.insert("else".to_string(), TokenType::Else);
+        reserved_keywords.insert("false".to_string(), TokenType::False);
+        reserved_keywords.insert("for".to_string(), TokenType::For);
+        reserved_keywords.insert("gorilla".to_string(), TokenType::Gorilla);
+        reserved_keywords.insert("if".to_string(), TokenType::If);
+        reserved_keywords.insert("null".to_string(), TokenType::Null);
+        reserved_keywords.insert("or".to_string(), TokenType::Or);
+        reserved_keywords.insert("print".to_string(), TokenType::Print);
+        reserved_keywords.insert("return".to_string(), TokenType::Return);
+        reserved_keywords.insert("super".to_string(), TokenType::Super);
+        reserved_keywords.insert("this".to_string(), TokenType::This);
+        reserved_keywords.insert("true".to_string(), TokenType::True);
+        reserved_keywords.insert("let".to_string(), TokenType::Let);
+        reserved_keywords.insert("while".to_string(), TokenType::While);
         Self {
             source,
             tokens: Vec::new(),
@@ -22,6 +42,7 @@ impl Scanner {
             current: 0,
             line: 1,
             errors: Vec::new(),
+            reserved_keywords,
         }
     }
 
@@ -90,6 +111,8 @@ impl Scanner {
                 // check if c is digit base 10, argument here is the radix.
                 if c.is_digit(10) {
                     self.handle_number();
+                } else if c.is_alphabetic() {
+                    self.identifier();
                 } else {
                     self.errors
                         .push(SyntaxError::UnexpectedToken(UnexpectedToken::new(
@@ -190,6 +213,17 @@ impl Scanner {
         self.add_literal(TokenType::String, Literal::String(literal_value));
     }
 
+    fn identifier(&mut self) {
+        while self.peek().is_alphanumeric() {
+            self.advance();
+        }
+        let source_text = self.source[self.start..self.current].to_string();
+        match self.reserved_keywords.get(&source_text) {
+            Some(token_type) => self.add_token(token_type.clone()),
+            None => self.add_token(TokenType::Identifier),
+        }
+    }
+
     fn handle_number(&mut self) {
         // consume before decimal point
         while self.peek().is_digit(10) {
@@ -226,23 +260,18 @@ mod test {
     //     scanner.add_token(crate::syntax::token::TokenType::Dot);
     //     println!("{:?}", scanner.tokens);
     // }
-    #[test]
-    fn scanner_test() {
-        let source_code = String::from(
-            r#"123 + 456;
-            
-            
-            "Hello bug";
+    // #[test]
+    // fn scanner_test() {
+    //     let source_code = String::from(
+    //         r#"
 
-            %
-
-            "Nats;
-            
-            
-            "#,
-        );
-        let mut scanner = Scanner::new(source_code);
-        scanner.scan_tokens();
-        println!("{:#?}", scanner);
-    }
+    //         let string  = "Hello";
+    //         let string = 123;
+    //         gorilla doSomething(){};
+    //           "#,
+    //     );
+    //     let mut scanner = Scanner::new(source_code);
+    //     scanner.scan_tokens();
+    //     println!("{:#?}", scanner);
+    // }
 }

@@ -1,3 +1,1 @@
-gorilla say_hello() {
-	print "hello"
-}
+let hello = "hello";
