@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -73,5 +73,11 @@ impl Token {
             literal,
             line,
         }
+    }
+}
+
+impl PartialEq for Token {
+    fn eq(&self, other: &Token) -> bool {
+        self.token_type == other.token_type
     }
 }
