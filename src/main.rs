@@ -9,7 +9,7 @@ fn main() {
         std::cmp::Ordering::Equal => {
             let content = fs::read_to_string(&args[1]);
             match content {
-                Ok(code) => interpreter::modname::run_file(code),
+                Ok(code) => interpreter::run_file(code),
                 Err(e) => println!("Bug: Could not read file: {}", e),
             }
         }
