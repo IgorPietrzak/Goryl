@@ -8,11 +8,11 @@ use crate::errors::syntax_error::{SyntaxError, UnexpectedToken, UnterminatedStri
 #[derive(Debug)]
 pub struct Scanner {
     source: String,
-    tokens: Vec<Token>,
+    pub tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: usize,
-    errors: Vec<SyntaxError>,
+    pub errors: Vec<SyntaxError>,
     reserved_keywords: HashMap<String, TokenType>,
 }
 

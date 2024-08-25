@@ -1,3 +1,4 @@
+use crate::errors::parse_error::ParseError;
 use crate::syntax::token::Literal as LiteralToken;
 
 use super::{
@@ -6,14 +7,24 @@ use super::{
 };
 use crate::syntax::token::{Token, TokenType};
 
-struct Parser {
+#[derive(Debug)]
+pub struct Parser<'a> {
     tokens: Vec<Token>,
     current: usize,
+    pub errors: Vec<ParseError<'a>>,
 }
 
-impl Parser {
+impl<'a> Parser<'a> {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, current: 0 }
+        Self {
+            tokens,
+            current: 0,
+            errors: Vec::new(),
+        }
+    }
+
+    pub fn parse(&mut self) -> Expr {
+        self.expression()
     }
 
     fn expression(&mut self) -> Expr {
@@ -128,11 +139,23 @@ impl Parser {
                 expression: Box::new(expr),
             });
         } else {
-            panic!("Error in primary!!");
+            panic!("Error in primary!!"); // error handling needed here.
         }
     }
 
     // HELPERS:
+
+    fn consume(&mut self, token_type: TokenType, msg: &'a str) -> Option<Token> {
+        if self.check(token_type) {
+            return Some(self.advance());
+        } else {
+            self.errors.push(ParseError {
+                token: self.peek(),
+                msg,
+            });
+            return None;
+        }
+    }
 
     fn previous(&self) -> Token {
         self.tokens[self.current - 1].clone()
@@ -148,7 +171,7 @@ impl Parser {
 
         return false;
     }
-
+    // debug this
     fn check(&mut self, t: TokenType) -> bool {
         if self.is_at_end() {
             return false;
@@ -178,3 +201,8 @@ impl Parser {
         self.tokens[self.current].clone()
     }
 }
+
+// #[cfg(test)]
+// mod test {
+//     use super::Parser;
+// }
