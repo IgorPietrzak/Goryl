@@ -5,6 +5,7 @@ use crate::errors::runtime_error::RuntimeError;
 use crate::syntax::scanner::Scanner;
 use crate::syntax::token::{Literal, TokenType};
 use std::io;
+use std::io::Write;
 use value::Value;
 
 pub fn run_file(file: String) {
@@ -17,12 +18,15 @@ pub fn run_file(file: String) {
     println!("{:?}", output);
 }
 
-pub fn run_line(line: String) {}
+pub fn run_line(line: String) {
+    run_file(line);
+}
 
 pub fn run_prompt() {
     loop {
         let mut line = String::new();
-        println!("> ");
+        print!("> ");
+        io::stdout().flush().unwrap();
         io::stdin()
             .read_line(&mut line)
             .expect("Could not read line");
@@ -73,7 +77,7 @@ pub fn interpret<'a>(expr: Expr) -> Result<Value, RuntimeError<'a>> {
                 TokenType::EqualEqual => Ok(Value::Bool(left == right)),
                 TokenType::BangEqual => Ok(Value::Bool(left != right)),
                 _ => Err(RuntimeError {
-                    msg: "dont have that feature yet1",
+                    msg: "dont have that feature yet",
                 }),
             }
         }

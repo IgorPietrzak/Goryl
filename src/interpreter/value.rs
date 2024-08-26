@@ -29,7 +29,7 @@ impl Not for Value {
         match self {
             Value::String(s) => Value::Bool(!s.is_empty()),
             Value::Number(n) => match n {
-                0.0 => Value::Bool(true),
+                0.0 => Value::Bool(true), // matching an f64 will be a hard error in the future, look into this
                 _ => Value::Bool(false),
             },
             Value::Bool(bool) => Value::Bool(!bool),
