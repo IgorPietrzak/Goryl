@@ -1,3 +1,4 @@
+use std::cmp::{PartialEq, PartialOrd};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 #[derive(Debug, Clone)]
@@ -38,6 +39,7 @@ impl Not for Value {
 }
 
 // binary operators:
+// arithmetic:
 
 impl Add for Value {
     type Output = Option<Self>;
@@ -82,6 +84,30 @@ impl Div for Value {
                 }
             }
             _ => None,
+        }
+    }
+}
+
+// comparsion
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match (self, other) {
+            (Value::Number(n1), Value::Number(n2)) => Some(n1.total_cmp(n2)),
+            (Value::String(s1), Value::String(s2)) => Some(s1.len().cmp(&s2.len())),
+            _ => None,
+        }
+    }
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Value::Number(n1), Value::Number(n2)) => n1 == n2,
+            (Value::String(s1), Value::String(s2)) => s1 == s2,
+            (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
+            (Value::None, Value::None) => true,
+            _ => false,
         }
     }
 }

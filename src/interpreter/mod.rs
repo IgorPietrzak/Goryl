@@ -1,6 +1,7 @@
 mod value;
 use crate::ast::expressions::Expr;
 use crate::ast::parser::Parser;
+use crate::errors::runtime_error::RuntimeError;
 use crate::syntax::scanner::Scanner;
 use crate::syntax::token::{Literal, TokenType};
 use std::io;
@@ -9,13 +10,11 @@ use value::Value;
 pub fn run_file(file: String) {
     let mut scanner = Scanner::new(file);
     scanner.scan_tokens();
-    println!("{:?}", scanner.errors);
     let tokens = scanner.tokens;
-    println!("{:?}", tokens);
     let mut parser = Parser::new(tokens);
     let ast = parser.parse();
-    println!(" \n\n\n AST: {:#?}", ast);
-    println!("{:?}", parser.errors);
+    let output = interpret(ast);
+    println!("{:?}", output);
 }
 
 pub fn run_line(line: String) {}
@@ -31,34 +30,64 @@ pub fn run_prompt() {
     }
 }
 
-pub fn interpret(expr: Expr) -> Value {
+pub fn interpret<'a>(expr: Expr) -> Result<Value, RuntimeError<'a>> {
     match expr {
         Expr::Literal(literal) => match literal.value {
-            Literal::String(s) => Value::String(s),
-            Literal::Number(n) => Value::Number(n),
-            Literal::Bool(b) => Value::Bool(b),
-            Literal::None => Value::None,
+            Literal::String(s) => Ok(Value::String(s)),
+            Literal::Number(n) => Ok(Value::Number(n)),
+            Literal::Bool(b) => Ok(Value::Bool(b)),
+            Literal::None => Ok(Value::None),
         },
-        Expr::Grouping(grouping) => evaluate(*grouping.expression), // need to dereference with * as grouping.expression is inside a Box<T> smart pointer and we pass by value into evaluate.
+        Expr::Grouping(grouping) => Ok(evaluate(*grouping.expression)), // need to dereference with * as grouping.expression is inside a Box<T> smart pointer and we pass by value into evaluate.
         Expr::Unary(unary) => {
             let right = evaluate(*unary.right);
             match unary.operator.token_type {
                 TokenType::Minus => {
                     if let Some(num) = -right.clone() {
-                        return num;
+                        return Ok(num);
                     } else {
-                        return right; // runtime error
+                        Err(RuntimeError {
+                            msg: "Invalid negation, can only negate type Number.",
+                        })
                     }
                 }
-                TokenType::Bang => !right,
-                _ => return right,
+                TokenType::Bang => Ok(!right),
+                _ => return Ok(right),
             }
         }
-        Expr::Binary(binary) => return Value::None,
+        Expr::Binary(binary) => {
+            let left = evaluate(*binary.left);
+            let right = evaluate(*binary.right);
+            match binary.operator.token_type {
+                TokenType::Minus => compute(left - right, "Can only subtract type Number"),
+                TokenType::Plus => compute(
+                    left + right,
+                    "Can only add literals of same type. Supported types: Number, String",
+                ),
+                TokenType::Slash => compute(left / right, "Division error."),
+                TokenType::Star => compute(left * right, "Can only multiply type Number"),
+                TokenType::Greater => Ok(Value::Bool(left > right)),
+                TokenType::GreaterEqual => Ok(Value::Bool(left >= right)),
+                TokenType::Less => Ok(Value::Bool(left < right)),
+                TokenType::LessEqual => Ok(Value::Bool(left <= right)),
+                TokenType::EqualEqual => Ok(Value::Bool(left == right)),
+                TokenType::BangEqual => Ok(Value::Bool(left != right)),
+                _ => Err(RuntimeError {
+                    msg: "dont have that feature yet1",
+                }),
+            }
+        }
     }
 }
 
 // pass it back to interpret (use for recursion) usually pass in nested sub expression.
 fn evaluate(expr: Expr) -> Value {
-    interpret(expr)
+    interpret(expr).unwrap()
+}
+
+fn compute<'a>(result: Option<Value>, msg: &'a str) -> Result<Value, RuntimeError<'a>> {
+    match result {
+        Some(res) => Ok(res),
+        None => Err(RuntimeError { msg }),
+    }
 }
