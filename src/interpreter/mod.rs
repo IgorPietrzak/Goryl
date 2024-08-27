@@ -1,61 +1,33 @@
+pub mod run;
 mod value;
 use crate::ast::expressions::Expr;
-use crate::ast::parser::Parser;
+use crate::ast::statements::Stmt;
 use crate::errors::runtime_error::RuntimeError;
-use crate::errors::Error;
-use crate::syntax::scanner::Scanner;
 use crate::syntax::token::{Literal, TokenType};
-use std::io;
-use std::io::Write;
+use run::print_value;
 use value::Value;
 
-pub fn run_file(file: String) {
-    let mut scanner = Scanner::new(file);
-    scanner.scan_tokens();
-    if scanner.errors.len() > 0 {
-        for error in scanner.errors.iter() {
-            error.report();
+pub fn interpret_statements(statements: Vec<Stmt>) {
+    for statement in statements {
+        interpret_statement(statement);
+    }
+}
+
+#[allow(warnings)] // compiler doesnt like interpret_expression having error variant but these get reported they occur anyway.
+fn interpret_statement(statement: Stmt) {
+    match statement {
+        Stmt::Expression(e) => {
+            interpret_expression(e.expression);
+            return;
         }
-        return;
-    }
-    let tokens = scanner.tokens;
-    let mut parser = Parser::new(tokens);
-    let ast = parser.parse();
-    if parser.errors.len() > 0 {
-        for error in parser.errors.iter() {
-            error.report();
+        Stmt::Print(val) => {
+            let output = interpret_expression(val.expression);
+            print_value(output);
         }
-        return;
-    }
-    let output = interpret(ast);
-    match output {
-        Ok(val) => match val {
-            Value::String(s) => println!("\n {:?}", s),
-            Value::Number(n) => println!("\n {:?}", n),
-            Value::Bool(b) => println!("\n {:?}", b),
-            Value::None => println!("\n Null"),
-        },
-        Err(e) => e.report(),
     }
 }
 
-pub fn run_line(line: String) {
-    run_file(line);
-}
-
-pub fn run_prompt() {
-    loop {
-        let mut line = String::new();
-        print!("> ");
-        io::stdout().flush().unwrap();
-        io::stdin()
-            .read_line(&mut line)
-            .expect("Could not read line");
-        run_line(line);
-    }
-}
-
-pub fn interpret<'a>(expr: Expr) -> Result<Value, RuntimeError<'a>> {
+fn interpret_expression<'a>(expr: Expr) -> Result<Value, RuntimeError<'a>> {
     match expr {
         Expr::Literal(literal) => match literal.value {
             Literal::String(s) => Ok(Value::String(s)),
@@ -105,9 +77,9 @@ pub fn interpret<'a>(expr: Expr) -> Result<Value, RuntimeError<'a>> {
     }
 }
 
-// pass it back to interpret (use for recursion) usually pass in nested sub expression.
+// pass it back to interpret_expression (use for recursion) usually pass in nested sub expression.
 fn evaluate(expr: Expr) -> Value {
-    interpret(expr).unwrap()
+    interpret_expression(expr).unwrap()
 }
 
 fn compute<'a>(result: Option<Value>, msg: &'a str) -> Result<Value, RuntimeError<'a>> {

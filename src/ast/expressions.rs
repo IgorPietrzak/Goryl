@@ -1,6 +1,7 @@
 use crate::syntax::token::Literal as TokenLiteral;
 use crate::syntax::token::Token;
 
+#[macro_export]
 macro_rules! define_ast {
     ($enum_name:ident, $($variant:ident { $($field:ident : $type:ty),* }),*) => {
 

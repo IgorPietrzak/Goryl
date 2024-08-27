@@ -3,6 +3,7 @@ use crate::syntax::token::Literal as LiteralToken;
 
 use super::{
     expressions::{Binary, Grouping, Literal, Unary},
+    statements::{Expression, Print, Stmt},
     Expr,
 };
 use crate::syntax::token::{Token, TokenType};
@@ -23,10 +24,32 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Expr {
-        self.expression()
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut statements: Vec<Stmt> = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.statement());
+        }
+        statements
     }
 
+    fn statement(&mut self) -> Stmt {
+        if self.match_types(vec![TokenType::Print]) {
+            self.print_statement()
+        } else {
+            self.expression_statement()
+        }
+    }
+
+    fn print_statement(&mut self) -> Stmt {
+        let value = self.expression();
+        self.consume(TokenType::Semicolon, "Expected ; after value.");
+        Stmt::Print(Print { expression: value })
+    }
+    fn expression_statement(&mut self) -> Stmt {
+        let expr = self.expression();
+        self.consume(TokenType::Semicolon, "Expected ; after expression");
+        Stmt::Expression(Expression { expression: expr })
+    }
     fn expression(&mut self) -> Expr {
         self.equality()
     }
@@ -177,7 +200,7 @@ impl<'a> Parser<'a> {
 
         return false;
     }
-    // debug this
+
     fn check(&mut self, t: TokenType) -> bool {
         if self.is_at_end() {
             return false;

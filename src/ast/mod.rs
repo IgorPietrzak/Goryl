@@ -1,5 +1,6 @@
 pub mod expressions;
 pub mod parser;
+pub mod statements;
 use expressions::Expr;
 
 impl Expr {
