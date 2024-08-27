@@ -47,3 +47,12 @@ impl Error for UnterminatedString {
         println!("Syntax Error: {}", self.message);
     }
 }
+
+impl Error for SyntaxError {
+    fn report(&self) {
+        match self {
+            SyntaxError::UnexpectedToken(e) => e.report(),
+            SyntaxError::UnterminatedString(e) => e.report(),
+        }
+    }
+}

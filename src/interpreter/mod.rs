@@ -2,6 +2,7 @@ mod value;
 use crate::ast::expressions::Expr;
 use crate::ast::parser::Parser;
 use crate::errors::runtime_error::RuntimeError;
+use crate::errors::Error;
 use crate::syntax::scanner::Scanner;
 use crate::syntax::token::{Literal, TokenType};
 use std::io;
@@ -11,11 +12,31 @@ use value::Value;
 pub fn run_file(file: String) {
     let mut scanner = Scanner::new(file);
     scanner.scan_tokens();
+    if scanner.errors.len() > 0 {
+        for error in scanner.errors.iter() {
+            error.report();
+        }
+        return;
+    }
     let tokens = scanner.tokens;
     let mut parser = Parser::new(tokens);
     let ast = parser.parse();
+    if parser.errors.len() > 0 {
+        for error in parser.errors.iter() {
+            error.report();
+        }
+        return;
+    }
     let output = interpret(ast);
-    println!("{:?}", output);
+    match output {
+        Ok(val) => match val {
+            Value::String(s) => println!("\n {:?}", s),
+            Value::Number(n) => println!("\n {:?}", n),
+            Value::Bool(b) => println!("\n {:?}", b),
+            Value::None => println!("\n Null"),
+        },
+        Err(e) => e.report(),
+    }
 }
 
 pub fn run_line(line: String) {

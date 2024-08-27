@@ -139,7 +139,13 @@ impl<'a> Parser<'a> {
                 expression: Box::new(expr),
             });
         } else {
-            panic!("Error in primary!!"); // error handling needed here.
+            self.errors.push(ParseError {
+                token: self.tokens[self.current].clone(),
+                msg: "Unexpected token",
+            });
+            Expr::Literal(Literal {
+                value: LiteralToken::None,
+            })
         }
     }
 
