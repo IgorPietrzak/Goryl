@@ -39,6 +39,9 @@ define_ast! {
     Unary {
         operator: Token,
         right: Box<Expr>
+    },
+    Variable {
+        name: Token
     }
 }
 

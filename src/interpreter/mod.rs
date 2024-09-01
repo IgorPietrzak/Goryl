@@ -49,7 +49,9 @@ fn interpret_expression<'a>(expr: Expr) -> Result<Value, RuntimeError<'a>> {
                     }
                 }
                 TokenType::Bang => Ok(!right),
-                _ => return Ok(right),
+                _ => Err(RuntimeError {
+                    msg: "Invalid unary operation",
+                }),
             }
         }
         Expr::Binary(binary) => {
