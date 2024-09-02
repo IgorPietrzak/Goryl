@@ -1,4 +1,4 @@
-use super::interpret_statements;
+use super::Interpreter;
 use crate::ast::parser::Parser;
 use crate::errors::runtime_error::RuntimeError;
 use crate::errors::Error;
@@ -20,7 +20,8 @@ pub fn run_file(file: String) {
     let tokens = scanner.tokens;
     let mut parser = Parser::new(tokens);
     let ast = parser.parse();
-    interpret_statements(ast);
+    let mut interpreter = Interpreter::new();
+    interpreter.interpret_statements(ast);
 }
 
 pub fn run_line(line: String) {

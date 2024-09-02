@@ -1,1 +1,4 @@
-print true and false;
+let name = "Igor";
+let space = " ";
+let lastName = "Pietrzak";
+print name + space + lastName + lmao;
