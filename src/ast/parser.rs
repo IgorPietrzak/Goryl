@@ -2,7 +2,8 @@ use crate::errors::parse_error::ParseError;
 use crate::syntax::token::Literal as LiteralToken;
 
 use super::{
-    expressions::{Binary, Grouping, Literal, Unary},
+    expressions::{Binary, Grouping, Literal, Unary, Variable},
+    statements::{Expression, Print, Stmt},
     Expr,
 };
 use crate::syntax::token::{Token, TokenType};
@@ -23,10 +24,76 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Expr {
-        self.expression()
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut statements: Vec<Stmt> = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.declaration());
+        }
+        statements
     }
 
+    fn declaration(&mut self) -> Stmt {
+        let before = self.errors.len();
+        if self.match_types(vec![TokenType::Let]) {
+            let stmt = self.var_declaration();
+            if before < self.errors.len() {
+                // if error occured in above operation synchronise tokens and keep going.
+                self.synchonise();
+            }
+            stmt
+        } else {
+            self.statement()
+        }
+    }
+
+    fn var_declaration(&mut self) -> Stmt {
+        let name = self.consume(TokenType::Identifier, "Expected an identifier");
+        let mut initialiser = Expr::Literal(Literal {
+            value: LiteralToken::None,
+        });
+        if self.match_types(vec![TokenType::Equal]) {
+            initialiser = self.expression();
+        }
+        self.consume(
+            TokenType::Semicolon,
+            "Expected ; after variable declaration",
+        );
+        if let Some(var) = name {
+            return Stmt::Let(super::statements::Let {
+                name: var,
+                initialiser,
+            });
+        } else {
+            return Stmt::Let(super::statements::Let {
+                name: Token {
+                    token_type: TokenType::Eof,
+                    lexeme: "".to_string(),
+                    literal: LiteralToken::None,
+                    line: 0,
+                },
+                initialiser,
+            });
+        }
+    }
+
+    fn statement(&mut self) -> Stmt {
+        if self.match_types(vec![TokenType::Print]) {
+            self.print_statement()
+        } else {
+            self.expression_statement()
+        }
+    }
+
+    fn print_statement(&mut self) -> Stmt {
+        let value = self.expression();
+        self.consume(TokenType::Semicolon, "Expected ; after value.");
+        Stmt::Print(Print { expression: value })
+    }
+    fn expression_statement(&mut self) -> Stmt {
+        let expr = self.expression();
+        self.consume(TokenType::Semicolon, "Expected ; after expression");
+        Stmt::Expression(Expression { expression: expr })
+    }
     fn expression(&mut self) -> Expr {
         self.equality()
     }
@@ -138,6 +205,10 @@ impl<'a> Parser<'a> {
             return Expr::Grouping(Grouping {
                 expression: Box::new(expr),
             });
+        } else if self.match_types(vec![TokenType::Identifier]) {
+            return Expr::Variable(Variable {
+                name: self.previous(),
+            });
         } else {
             self.errors.push(ParseError {
                 token: self.tokens[self.current].clone(),
@@ -177,7 +248,7 @@ impl<'a> Parser<'a> {
 
         return false;
     }
-    // debug this
+
     fn check(&mut self, t: TokenType) -> bool {
         if self.is_at_end() {
             return false;
@@ -205,6 +276,29 @@ impl<'a> Parser<'a> {
 
     fn peek(&self) -> Token {
         self.tokens[self.current].clone()
+    }
+
+    fn synchonise(&mut self) {
+        self.advance();
+
+        while !self.is_at_end() {
+            match self.previous().token_type {
+                TokenType::Semicolon => return,
+                _ => {}
+            }
+            match self.peek().token_type {
+                TokenType::Jungle
+                | TokenType::Gorilla
+                | TokenType::Let
+                | TokenType::For
+                | TokenType::If
+                | TokenType::While
+                | TokenType::Print
+                | TokenType::Return => return,
+                _ => {}
+            }
+            self.advance();
+        }
     }
 }
 
