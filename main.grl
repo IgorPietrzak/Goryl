@@ -1,0 +1,6 @@
+import "discount.grl";
+
+let amount = 100;
+let total = amount - amount * discount;
+
+print total;

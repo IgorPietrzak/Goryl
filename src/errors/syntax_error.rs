@@ -1,17 +1,17 @@
 use super::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SyntaxError {
     UnexpectedToken(UnexpectedToken),
     UnterminatedString(UnterminatedString),
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnexpectedToken {
     line: usize,
     message: String,
     token: char,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnterminatedString {
     line: usize,
     message: String,

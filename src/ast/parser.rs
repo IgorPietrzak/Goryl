@@ -3,7 +3,7 @@ use crate::syntax::token::Literal as LiteralToken;
 
 use super::{
     expressions::{Binary, Grouping, Literal, Unary, Variable},
-    statements::{Expression, Print, Stmt},
+    statements::{Expression, Import, Print, Stmt},
     Expr,
 };
 use crate::syntax::token::{Token, TokenType};
@@ -79,8 +79,28 @@ impl<'a> Parser<'a> {
     fn statement(&mut self) -> Stmt {
         if self.match_types(vec![TokenType::Print]) {
             self.print_statement()
+        } else if self.match_types(vec![TokenType::Import]) {
+            self.import_statement()
         } else {
             self.expression_statement()
+        }
+    }
+    fn import_statement(&mut self) -> Stmt {
+        let file_name_token = self.consume(TokenType::String, "Expected file name");
+        self.consume(
+            TokenType::Semicolon,
+            "Expected ; after file name in import statement",
+        );
+        if let Some(token) = file_name_token {
+            Stmt::Import(Import {
+                file_name: token.lexeme,
+            })
+        } else {
+            Stmt::Print(Print {
+                expression: Expr::Literal(Literal {
+                    value: LiteralToken::None,
+                }),
+            })
         }
     }
 

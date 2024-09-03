@@ -1,9 +1,11 @@
 mod environment;
+mod file_resolver;
 pub mod run;
 mod value;
 use crate::ast::expressions::Expr;
 use crate::ast::statements::Stmt;
 use crate::errors::runtime_error::RuntimeError;
+use crate::errors::Error;
 use crate::syntax::token::{Literal, TokenType};
 use environment::Environment;
 use run::print_value;
@@ -39,6 +41,24 @@ impl Interpreter {
             Stmt::Let(v) => {
                 let value = self.evaluate(v.initialiser);
                 self.env.define(v.name.lexeme, value);
+            }
+            Stmt::Import(import) => {
+                let file_name = import.file_name;
+                self.handle_import(file_name);
+                return;
+            }
+        }
+    }
+
+    fn handle_import(&mut self, file_name: String) {
+        match file_resolver::create_statement_stream(file_name) {
+            Ok(stmts) => self.interpret_statements(stmts),
+            Err(e) => {
+                println!("{:?}", e);
+                RuntimeError {
+                    msg: "Could not resolve import",
+                }
+                .report()
             }
         }
     }
