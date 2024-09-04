@@ -6,12 +6,12 @@ use crate::{ast::parser::Parser, errors::Error};
 use std::fs;
 
 #[derive(Debug)]
-pub enum ImportError<'a> {
+pub enum ImportError {
     Syntax(SyntaxError),
-    FileNotFound(RuntimeError<'a>),
+    FileNotFound(RuntimeError),
 }
 
-pub fn create_statement_stream<'a>(file_name: String) -> Result<Vec<Stmt>, ImportError<'a>> {
+pub fn create_statement_stream(file_name: &str) -> Result<Vec<Stmt>, ImportError> {
     let file = find_file(clean_file_name(file_name));
     match file {
         Ok(content) => {
@@ -30,23 +30,24 @@ pub fn create_statement_stream<'a>(file_name: String) -> Result<Vec<Stmt>, Impor
     }
 }
 
-fn find_file<'a>(file_name: String) -> Result<String, RuntimeError<'a>> {
-    let file = fs::read_to_string(clean_file_name(file_name));
+fn find_file(file_name: String) -> Result<String, RuntimeError> {
+    let file = fs::read_to_string(clean_file_name(&file_name));
     match file {
         Ok(content) => Ok(content),
         Err(_) => Err(RuntimeError {
-            msg: "Could not find import",
+            msg: "Could not find import".to_string(),
         }),
     }
 }
 
-fn clean_file_name(mut raw_name: String) -> String {
-    raw_name = raw_name
+fn clean_file_name(raw_name: &str) -> String {
+    let clean: String = raw_name
+        .to_string()
         .chars()
         .into_iter()
         .filter(|x| x != &'\\' && x != &'"')
         .collect();
-    raw_name
+    clean.to_string()
 }
 
 // #[cfg(test)]

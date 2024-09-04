@@ -40,7 +40,7 @@ pub fn run_prompt() {
     }
 }
 
-pub fn print_value<'a>(val: Result<Value, RuntimeError<'a>>) {
+pub fn print_value(val: Result<Value, RuntimeError>) {
     match val {
         Ok(val) => match val {
             Value::String(s) => println!("{:?}", s),
