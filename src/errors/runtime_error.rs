@@ -1,11 +1,11 @@
 use super::Error;
 
 #[derive(Debug)]
-pub struct RuntimeError<'a> {
-    pub msg: &'a str,
+pub struct RuntimeError {
+    pub msg: String,
 }
 
-impl<'a> Error for RuntimeError<'a> {
+impl Error for RuntimeError {
     fn report(&self) {
         println!("Runtime error: {} ", self.msg);
     }

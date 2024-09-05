@@ -5,7 +5,7 @@ use super::token::Token;
 use super::token::TokenType;
 use crate::errors::syntax_error::{SyntaxError, UnexpectedToken, UnterminatedString};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Scanner {
     source: String,
     pub tokens: Vec<Token>,
@@ -35,6 +35,7 @@ impl Scanner {
         reserved_keywords.insert("true".to_string(), TokenType::True);
         reserved_keywords.insert("let".to_string(), TokenType::Let);
         reserved_keywords.insert("while".to_string(), TokenType::While);
+        reserved_keywords.insert("import".to_string(), TokenType::Import);
         Self {
             source,
             tokens: Vec::new(),
@@ -105,6 +106,7 @@ impl Scanner {
             '\r' => {}
             '\t' => {}
             '\n' => self.line += 1,
+            '\\' => {}
             '"' => self.handle_string(),
 
             _ => {
@@ -248,30 +250,15 @@ impl Scanner {
 mod test {
     use super::Scanner;
 
-    // #[test]
-    // fn test_is_at_end() {
-    //     let scanner = Scanner::new("let igor = true".to_string());
-    //     assert_eq!(false, scanner.is_at_end())
-    // }
-
-    // #[test]
-    // fn test_add_token() {
-    //     let mut scanner = Scanner::new("let hello = true;".to_string());
-    //     scanner.add_token(crate::syntax::token::TokenType::Dot);
-    //     println!("{:?}", scanner.tokens);
-    // }
-    // #[test]
-    // fn scanner_test() {
-    //     let source_code = String::from(
-    //         r#"
-
-    //         let string  = "Hello";
-    //         let string = 123;
-    //         gorilla doSomething(){};
-    //           "#,
-    //     );
-    //     let mut scanner = Scanner::new(source_code);
-    //     scanner.scan_tokens();
-    //     println!("{:#?}", scanner);
-    // }
+    #[test]
+    fn scanner_test() {
+        let source_code = String::from(
+            r#"
+            let lemin = \"LEMON\";\nprint lemin;\n
+                          "#,
+        );
+        let mut scanner = Scanner::new(source_code);
+        scanner.scan_tokens();
+        println!("{:#?}", scanner);
+    }
 }

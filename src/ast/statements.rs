@@ -12,5 +12,8 @@ Print {
 Let {
  name: Token,
  initialiser: Expr
+},
+Import {
+ file_name: String
 }
 }

@@ -1,9 +1,11 @@
 mod environment;
+mod file_resolver;
 pub mod run;
 mod value;
 use crate::ast::expressions::Expr;
 use crate::ast::statements::Stmt;
 use crate::errors::runtime_error::RuntimeError;
+use crate::errors::Error;
 use crate::syntax::token::{Literal, TokenType};
 use environment::Environment;
 use run::print_value;
@@ -40,10 +42,28 @@ impl Interpreter {
                 let value = self.evaluate(v.initialiser);
                 self.env.define(v.name.lexeme, value);
             }
+            Stmt::Import(import) => {
+                let file_name = import.file_name;
+                self.handle_import(file_name);
+                return;
+            }
         }
     }
 
-    fn interpret_expression<'a>(&mut self, expr: Expr) -> Result<Value, RuntimeError<'a>> {
+    fn handle_import(&mut self, file_name: String) {
+        match file_resolver::create_statement_stream(&file_name) {
+            Ok(stmts) => self.interpret_statements(stmts),
+            Err(e) => {
+                println!("{:?}", e);
+                RuntimeError {
+                    msg: format!("Could not resolve file import: {:?}", file_name),
+                }
+                .report();
+            }
+        }
+    }
+
+    fn interpret_expression(&mut self, expr: Expr) -> Result<Value, RuntimeError> {
         match expr {
             Expr::Literal(literal) => match literal.value {
                 Literal::String(s) => Ok(Value::String(s)),
@@ -60,13 +80,13 @@ impl Interpreter {
                             return Ok(num);
                         } else {
                             Err(RuntimeError {
-                                msg: "Invalid negation, can only negate type Number.",
+                                msg: "Invalid negation, can only negate type Number.".to_string(),
                             })
                         }
                     }
                     TokenType::Bang => Ok(!right),
                     _ => Err(RuntimeError {
-                        msg: "Invalid unary operation",
+                        msg: "Invalid unary operation".to_string(),
                     }),
                 }
             }
@@ -74,13 +94,18 @@ impl Interpreter {
                 let left = self.evaluate(*binary.left);
                 let right = self.evaluate(*binary.right);
                 match binary.operator.token_type {
-                    TokenType::Minus => compute(left - right, "Can only subtract type Number"),
+                    TokenType::Minus => {
+                        compute(left - right, "Can only subtract type Number".to_string())
+                    }
                     TokenType::Plus => compute(
                         left + right,
-                        "Can only add literals of same type. Supported types: Number, String",
+                        "Can only add literals of same type. Supported types: Number, String"
+                            .to_string(),
                     ),
-                    TokenType::Slash => compute(left / right, "Division error."),
-                    TokenType::Star => compute(left * right, "Can only multiply type Number"),
+                    TokenType::Slash => compute(left / right, "Division error.".to_string()),
+                    TokenType::Star => {
+                        compute(left * right, "Can only multiply type Number".to_string())
+                    }
                     TokenType::Greater => Ok(Value::Bool(left > right)),
                     TokenType::GreaterEqual => Ok(Value::Bool(left >= right)),
                     TokenType::Less => Ok(Value::Bool(left < right)),
@@ -88,7 +113,7 @@ impl Interpreter {
                     TokenType::EqualEqual => Ok(Value::Bool(left == right)),
                     TokenType::BangEqual => Ok(Value::Bool(left != right)),
                     _ => Err(RuntimeError {
-                        msg: "dont have that feature yet",
+                        msg: "dont have that feature yet".to_string(),
                     }),
                 }
             }
@@ -97,7 +122,7 @@ impl Interpreter {
                     Ok(value)
                 } else {
                     Err(RuntimeError {
-                        msg: "Undefined variable",
+                        msg: "Undefined variable".to_string(),
                     })
                 }
             }
@@ -110,7 +135,7 @@ impl Interpreter {
     }
 }
 
-fn compute<'a>(result: Option<Value>, msg: &'a str) -> Result<Value, RuntimeError<'a>> {
+fn compute(result: Option<Value>, msg: String) -> Result<Value, RuntimeError> {
     match result {
         Some(res) => Ok(res),
         None => Err(RuntimeError { msg }),
